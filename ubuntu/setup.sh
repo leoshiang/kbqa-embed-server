@@ -51,6 +51,7 @@ sudo apt install -y elasticsearch=8.17.4
 # ✅ 一次性覆蓋 elasticsearch.yml，避免 YAML 錯誤
 echo "🛠️ 寫入正確的 elasticsearch.yml（清除原有內容）"
 sudo tee /etc/elasticsearch/elasticsearch.yml > /dev/null <<EOF
+xpack.security.transport.ssl.enabled: true
 xpack.security.enabled: false
 xpack.security.enrollment.enabled: false
 discovery.type: single-node
