@@ -46,7 +46,7 @@ sudo apt install -y wget gnupg apt-transport-https curl
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
 echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
 sudo apt update
-sudo apt install -y elasticsearch=8.13.0
+sudo apt install -y elasticsearch=8.17.4
 
 # ✅ 一次性覆蓋 elasticsearch.yml，避免 YAML 錯誤
 echo "🛠️ 寫入正確的 elasticsearch.yml（清除原有內容）"
