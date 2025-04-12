@@ -41,39 +41,38 @@ echo ""
 echo "📦 安裝 Elasticsearch（for 開發環境）..."
 
 sudo apt update
-sudo apt install -y wget gnupg apt-transport-https curl
-
-wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
-sudo apt update
-sudo apt install -y elasticsearch=8.17.4
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+sudo apt-get install apt-transport-https
+echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
+sudo apt-get update && sudo apt-get install elasticsearch
 
 # ✅ 一次性覆蓋 elasticsearch.yml，避免 YAML 錯誤
 echo "🛠️ 寫入正確的 elasticsearch.yml（清除原有內容）"
 sudo tee /etc/elasticsearch/elasticsearch.yml > /dev/null <<EOF
-xpack.security.transport.ssl.enabled: true
-xpack.security.enabled: false
-xpack.security.enrollment.enabled: false
-discovery.type: single-node
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
 network.host: 0.0.0.0
-http.port: 9200
+discovery.seed_hosts: []
+xpack.security.enabled: false
+xpack.security.enrollment.enabled: true
+xpack.security.http.ssl:
+  enabled: true
+  keystore.path: certs/http.p12
+xpack.security.transport.ssl:
+  enabled: true
+  verification_mode: certificate
+  keystore.path: certs/transport.p12
+  truststore.path: certs/transport.p12
+cluster.initial_master_nodes: ["ubuntu24042"]
 EOF
-
-# ✅ 降低記憶體需求（選配）
-sudo sed -i 's/^-Xms.*/-Xms512m/' /etc/elasticsearch/jvm.options
-sudo sed -i 's/^-Xmx.*/-Xmx512m/' /etc/elasticsearch/jvm.options
-
-# ✅ 提升 Linux 限制
-sudo sysctl -w vm.max_map_count=262144
-echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
 
 # 🔁 啟動服務
 sudo systemctl daemon-reload
-sudo systemctl enable elasticsearch
+sudo systemctl enable elasticsearch.service
 sudo systemctl restart elasticsearch
 
 echo "🕒 等待 Elasticsearch 啟動..."
-sleep 10
+sleep 30
 
 if curl -s http://localhost:9200 | grep cluster_name; then
   echo "✅ Elasticsearch 啟動成功！"
