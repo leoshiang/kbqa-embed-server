@@ -48,9 +48,9 @@ echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee 
 sudo apt update
 sudo apt install -y elasticsearch=8.13.0
 
-sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null <<EOF
-
-# 為本地開發調整的設定
+# ✅ 一次性覆蓋 elasticsearch.yml，避免 YAML 錯誤
+echo "🛠️ 寫入正確的 elasticsearch.yml（清除原有內容）"
+sudo tee /etc/elasticsearch/elasticsearch.yml > /dev/null <<EOF
 xpack.security.enabled: false
 xpack.security.enrollment.enabled: false
 discovery.type: single-node
@@ -58,13 +58,27 @@ network.host: 0.0.0.0
 http.port: 9200
 EOF
 
+# ✅ 降低記憶體需求（選配）
+sudo sed -i 's/^-Xms.*/-Xms512m/' /etc/elasticsearch/jvm.options
+sudo sed -i 's/^-Xmx.*/-Xmx512m/' /etc/elasticsearch/jvm.options
+
+# ✅ 提升 Linux 限制
+sudo sysctl -w vm.max_map_count=262144
+echo "vm.max_map_count=262144" | sudo tee -a /etc/sysctl.conf
+
+# 🔁 啟動服務
 sudo systemctl daemon-reload
 sudo systemctl enable elasticsearch
 sudo systemctl restart elasticsearch
 
 echo "🕒 等待 Elasticsearch 啟動..."
 sleep 10
-curl -s http://localhost:9200 | grep cluster_name && echo "✅ Elasticsearch 啟動成功！" || echo "⚠️ Elasticsearch 可能尚未啟動"
+
+if curl -s http://localhost:9200 | grep cluster_name; then
+  echo "✅ Elasticsearch 啟動成功！"
+else
+  echo "❌ Elasticsearch 啟動失敗，請檢查 journalctl -xeu elasticsearch.service"
+fi
 
 # 是否執行安裝
 if $AUTO_MODE; then
